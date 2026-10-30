@@ -1,0 +1,9 @@
+{
+    "accuracy": 0.834,
+    "training_samples": 8000,
+    "testing_samples": 2000,
+    "classes": [
+        "OR",
+        "CG"
+    ]
+}
