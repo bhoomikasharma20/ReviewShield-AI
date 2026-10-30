@@ -1,9 +1,6 @@
 {
-    "accuracy": 0.834,
-    "training_samples": 8000,
-    "testing_samples": 2000,
-    "classes": [
-        "OR",
-        "CG"
-    ]
+  "accuracy": 0.7775,
+  "precision": 0.7733990147783252,
+  "recall": 0.785,
+  "f1_score": 0.7791563275434243
 }
