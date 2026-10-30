@@ -12,7 +12,6 @@ st.set_page_config(
 )
 
 
-# Load Model Files
 @st.cache_resource
 def load_model_files():
     model = tf.keras.models.load_model(
@@ -29,7 +28,6 @@ def load_model_files():
     return model, vectorizer, metrics
 
 
-# Clean Review Text
 def clean_text(text):
     text = text.lower()
     text = re.sub(r"<[^>]+>", " ", text)
@@ -37,7 +35,7 @@ def clean_text(text):
     return text.strip()
 
 
-# Website Title
+# Website Header
 st.title("🛡️ ReviewShield AI")
 st.subheader("AI-Powered Product Review Analyzer")
 
@@ -67,34 +65,24 @@ examples = {
 }
 
 
-# Initialize Session State
+# Session State
 if "review_text" not in st.session_state:
     st.session_state.review_text = ""
 
 
-# Example Review Section
+# Example Buttons
 st.divider()
 st.subheader("📝 Try Example Reviews")
-
-st.write("Click a button to load a sample review.")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button(
-        "🤖 ChatGPT Review (CG)",
-        key="cg_example",
-        use_container_width=True
-    ):
+    if st.button("🤖 ChatGPT Review (CG)", use_container_width=True):
         st.session_state.review_text = examples["ChatGPT Review (CG)"]
         st.rerun()
 
 with col2:
-    if st.button(
-        "👤 Human Review (OR)",
-        key="or_example",
-        use_container_width=True
-    ):
+    if st.button("👤 Human Review (OR)", use_container_width=True):
         st.session_state.review_text = examples["Human Review (OR)"]
         st.rerun()
 
@@ -112,9 +100,7 @@ review = st.text_area(
 if st.button("Analyze Review", type="primary"):
 
     if len(review.strip()) < 10:
-        st.warning(
-            "Please enter a review of at least 10 characters."
-        )
+        st.warning("Please enter a review of at least 10 characters.")
 
     else:
         cleaned = clean_text(review)
@@ -125,56 +111,47 @@ if st.button("Analyze Review", type="primary"):
             model.predict(features, verbose=0)[0][0]
         )
 
+        # Both Class Scores
+        cg_score = score * 100
+        or_score = (1 - score) * 100
+
+        st.divider()
         st.subheader("🔍 Analysis Result")
 
         if score >= 0.55:
-            st.warning(
-                "Potentially Computer-Generated (CG)"
-            )
+            st.warning("Potentially Computer-Generated (CG)")
+        else:
+            st.success("More Similar to Original (OR)")
+
+        # Display Both Scores
+        col1, col2 = st.columns(2)
+
+        with col1:
             st.metric(
-                "CG Model Score",
-                f"{score:.1%}"
+                "🤖 CG Score",
+                f"{cg_score:.2f}%"
             )
 
-        else:
-            st.success(
-                "More Similar to Original (OR)"
-            )
+        with col2:
             st.metric(
-                "OR Model Score",
-                f"{1-score:.1%}"
+                "👤 OR Score",
+                f"{or_score:.2f}%"
             )
 
         st.caption(
-            "This is a model prediction, not proof that a review "
-            "is fake or genuine."
+            "These are model scores, not verified probabilities. "
+            "A high score does not guarantee a correct classification."
         )
 
 
 # Model Performance
 st.divider()
-
 st.header("📊 Model Performance")
 
 c1, c2, c3, c4 = st.columns(4)
 
-c1.metric(
-    "Accuracy",
-    f"{metrics['accuracy']:.1%}"
-)
-
-c2.metric(
-    "Precision",
-    f"{metrics['precision']:.1%}"
-)
-
-c3.metric(
-    "Recall",
-    f"{metrics['recall']:.1%}"
-)
-
-c4.metric(
-    "F1-score",
-    f"{metrics['f1_score']:.1%}"
-)
+c1.metric("Accuracy", f"{metrics['accuracy']:.1%}")
+c2.metric("Precision", f"{metrics['precision']:.1%}")
+c3.metric("Recall", f"{metrics['recall']:.1%}")
+c4.metric("F1-score", f"{metrics['f1_score']:.1%}")
 
