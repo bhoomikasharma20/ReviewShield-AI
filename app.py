@@ -5,6 +5,14 @@ import json
 import numpy as np
 from pathlib import Path
 
+# ---------------- FILE PATHS ----------------
+
+BASE_DIR = Path(__file__).resolve().parent
+
+MODEL_PATH = BASE_DIR / "reviewshield_artifacts" / "ann_model.keras"
+VECTORIZER_PATH = BASE_DIR / "reviewshield_artifacts" / "tfidf_vectorizer.pkl"
+METRICS_PATH = BASE_DIR / "reviewshield_artifacts" / "metrics.json"
+
 
 # ---------------- PAGE SETTINGS ----------------
 
