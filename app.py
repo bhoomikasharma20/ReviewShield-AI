@@ -18,41 +18,52 @@ st.set_page_config(
 )
 
 # -------------------------------
+# FILE PATHS
+# -------------------------------
+
+MODEL_PATH = "ann_model.keras"
+VECTORIZER_PATH = "tfidf_vectorizer.pkl"
+METRICS_PATH = "metrics.json"
+
+
+# -------------------------------
 # LOAD MODEL FILES
 # -------------------------------
 
 @st.cache_resource
 def load_model_files():
 
-    model_path = "reviewshield_artifacts/ann_model.keras"
-    vectorizer_path = "reviewshield_artifacts/tfidf_vectorizer.pkl"
-    metrics_path = "reviewshield_artifacts/metrics.json"
-
-    # Check files
-    for path in [model_path, vectorizer_path, metrics_path]:
+    # Check files exist
+    for path in [
+        MODEL_PATH,
+        VECTORIZER_PATH,
+        METRICS_PATH
+    ]:
         if not os.path.exists(path):
             raise FileNotFoundError(
-                f"Required file not found: {path}"
+                f"File not found: {path}"
             )
 
     # Load ANN model
     model = tf.keras.models.load_model(
-        model_path,
+        MODEL_PATH,
         compile=False
     )
 
     # Load TF-IDF vectorizer
-    vectorizer = joblib.load(vectorizer_path)
+    vectorizer = joblib.load(
+        VECTORIZER_PATH
+    )
 
-    # Load performance metrics
-    with open(metrics_path, "r") as file:
+    # Load metrics
+    with open(METRICS_PATH, "r") as file:
         metrics = json.load(file)
 
     return model, vectorizer, metrics
 
 
 # -------------------------------
-# TEXT PREPROCESSING
+# TEXT CLEANING
 # -------------------------------
 
 def clean_text(text):
@@ -65,7 +76,7 @@ def clean_text(text):
 
 
 # -------------------------------
-# HEADER
+# WEBSITE HEADER
 # -------------------------------
 
 st.title("🛡️ ReviewShield AI")
@@ -83,17 +94,16 @@ st.divider()
 
 
 # -------------------------------
-# LOAD MODEL SAFELY
+# LOAD MODEL
 # -------------------------------
 
 try:
+
     model, vectorizer, metrics = load_model_files()
 
 except Exception as e:
 
-    st.error("Unable to load the AI model.")
-
-    st.write("Please check the model files and dependencies.")
+    st.error("Unable to load AI model files.")
 
     st.exception(e)
 
@@ -125,6 +135,7 @@ examples = {
 # -------------------------------
 
 if "review_text" not in st.session_state:
+
     st.session_state.review_text = ""
 
 
@@ -204,7 +215,7 @@ if st.button(
                 )[0][0]
             )
 
-            # Calculate class scores
+            # Calculate scores
             cg_score = score * 100
             or_score = (1 - score) * 100
 
@@ -212,6 +223,7 @@ if st.button(
 
             st.subheader("🔍 Analysis Result")
 
+            # Prediction
             if score >= 0.55:
 
                 st.warning(
@@ -243,12 +255,14 @@ if st.button(
 
             st.caption(
                 "These are model scores, not verified probabilities. "
-                "Predictions are not proof that a review is fake or genuine."
+                "A prediction is not proof that a review is fake or genuine."
             )
 
         except Exception as e:
 
-            st.error("Error while analyzing the review.")
+            st.error(
+                "Something went wrong during review analysis."
+            )
 
             st.exception(e)
 
@@ -293,5 +307,6 @@ st.divider()
 st.caption(
     "ReviewShield AI | ANN-Based Product Review Classification System"
 )
+
 
 
