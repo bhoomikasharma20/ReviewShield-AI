@@ -17,11 +17,13 @@ st.set_page_config(
 
 # ---------------- FILE PATHS ----------------
 
+# ---------------- FILE PATHS ----------------
+
 BASE_DIR = Path(__file__).resolve().parent
 
-MODEL_PATH = BASE_DIR / "ann_model.keras"
-VECTORIZER_PATH = BASE_DIR / "tfidf_vectorizer.pkl"
-METRICS_PATH = BASE_DIR / "metrics.json"
+MODEL_PATH = BASE_DIR / "reviewshield_artifacts" / "ann_model.keras"
+VECTORIZER_PATH = BASE_DIR / "reviewshield_artifacts" / "tfidf_vectorizer.pkl"
+METRICS_PATH = BASE_DIR / "reviewshield_artifacts" / "metrics.json"
 
 
 # ---------------- CUSTOM DESIGN ----------------
