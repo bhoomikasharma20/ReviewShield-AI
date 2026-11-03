@@ -293,35 +293,35 @@ except Exception as e:
 # EXAMPLE REVIEWS
 # ==================================================
 
+# ---------------- EXAMPLE REVIEWS ----------------
+
 st.subheader("✨ Try Example Reviews")
 
 col1, col2 = st.columns(2)
 
 with col1:
-
-    if st.button(
-        "👤 Original Review Example",
-        use_container_width=True
-    ):
-
+    if st.button("👤 Original Review Example"):
         st.session_state["review_input"] = (
-            "I bought this product last week. "
-            "It works well and the quality is good. "
-            "I am happy with my purchase."
+            "I ordered these headphones about three weeks ago. "
+            "The sound is pretty good and the battery lasts "
+            "most of the day. The only thing I did not like "
+            "was that the ear cushions felt a little tight "
+            "at first. After using them for a few days, "
+            "they became more comfortable. Overall, I am "
+            "satisfied with what I paid for them."
         )
 
 with col2:
-
-    if st.button(
-        "🤖 Generated Review Example",
-        use_container_width=True
-    ):
-
+    if st.button("🤖 Generated Review Example"):
         st.session_state["review_input"] = (
-            "This amazing product offers outstanding quality "
-            "and excellent performance. Highly recommended "
-            "for everyone."
+            "This exceptional product delivers outstanding "
+            "performance and remarkable quality. Its innovative "
+            "design provides an excellent user experience. "
+            "With impressive features and superior functionality, "
+            "it is highly recommended for anyone seeking "
+            "the best product available."
         )
+
 
 # ==================================================
 # REVIEW INPUT
