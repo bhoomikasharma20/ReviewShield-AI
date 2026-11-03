@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 import tensorflow as tf
 import joblib
@@ -141,7 +139,8 @@ if st.button("Analyze Review", type="primary"):
     else:
 
         try:
-            review_vector = vectorizer.transform([review])
+            # Yahan .toarray() add kar diya gaya hai
+            review_vector = vectorizer.transform([review]).toarray()
 
             prediction = model.predict(
                 review_vector,
