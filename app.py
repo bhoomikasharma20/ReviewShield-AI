@@ -1,13 +1,14 @@
 
 
-import json
-import joblib
 import streamlit as st
 import tensorflow as tf
+import joblib
+import json
 import numpy as np
+from pathlib import Path
 
 
-# ---------------- PAGE CONFIGURATION ----------------
+# ---------------- PAGE SETTINGS ----------------
 
 st.set_page_config(
     page_title="ReviewShield AI",
@@ -16,49 +17,47 @@ st.set_page_config(
 )
 
 
-# ---------------- CUSTOM CSS ----------------
+# ---------------- FILE PATHS ----------------
+
+BASE_DIR = Path(__file__).resolve().parent
+
+MODEL_PATH = BASE_DIR / "ann_model.keras"
+VECTORIZER_PATH = BASE_DIR / "tfidf_vectorizer.pkl"
+METRICS_PATH = BASE_DIR / "metrics.json"
+
+
+# ---------------- CUSTOM DESIGN ----------------
 
 st.markdown("""
 <style>
-.main {
-    background-color: #f7f9fc;
-}
 .title {
     text-align: center;
-    color: #173b67;
+    color: #174477;
     font-size: 38px;
     font-weight: bold;
 }
 .subtitle {
     text-align: center;
-    color: #555555;
+    color: gray;
     font-size: 16px;
-}
-.result-box {
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    margin-top: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ---------------- LOAD MODEL FILES ----------------
+# ---------------- LOAD MODEL ----------------
 
 @st.cache_resource
 def load_model_files():
 
     model = tf.keras.models.load_model(
-        "ann_model.keras",
+        MODEL_PATH,
         compile=False
     )
 
-    vectorizer = joblib.load(
-        "tfidf_vectorizer.pkl"
-    )
+    vectorizer = joblib.load(VECTORIZER_PATH)
 
-    with open("metrics.json", "r") as file:
+    with open(METRICS_PATH, "r") as file:
         metrics = json.load(file)
 
     return model, vectorizer, metrics
@@ -79,19 +78,19 @@ st.markdown(
 st.write("")
 
 st.info(
-    "Enter a product review below to check whether it is "
-    "Original (OR) or Computer-Generated (CG)."
+    "Enter a product review to classify it as Original (OR) "
+    "or Computer-Generated (CG)."
 )
 
 
-# ---------------- LOAD FILES SAFELY ----------------
+# ---------------- LOAD FILES ----------------
 
 try:
     model, vectorizer, metrics = load_model_files()
 
 except Exception as e:
-    st.error("Unable to load the model files.")
-    st.write("Please check that all model files are present in the repository root.")
+    st.error("Model files could not be loaded.")
+    st.write("Please check that all required files are available.")
     st.exception(e)
     st.stop()
 
@@ -105,29 +104,29 @@ col1, col2 = st.columns(2)
 with col1:
     if st.button("Original Review Example"):
         st.session_state["review_input"] = (
-            "I bought this product last week and have been "
-            "using it every day. The quality is good and "
-            "it works as expected."
+            "I bought this product last week. "
+            "It works well and the quality is good. "
+            "I am happy with my purchase."
         )
 
 with col2:
     if st.button("Generated Review Example"):
         st.session_state["review_input"] = (
-            "This amazing product provides excellent quality "
-            "and outstanding performance. It is highly "
-            "recommended for everyone."
+            "This amazing product offers outstanding quality "
+            "and excellent performance. Highly recommended "
+            "for everyone."
         )
 
 
-# ---------------- USER INPUT ----------------
+# ---------------- REVIEW INPUT ----------------
 
 st.subheader("Enter Your Product Review")
 
 review = st.text_area(
-    "Write or paste your review here:",
+    "Write or paste your review:",
     key="review_input",
     height=160,
-    placeholder="Type your product review..."
+    placeholder="Type your product review here..."
 )
 
 
@@ -136,27 +135,28 @@ review = st.text_area(
 if st.button("Analyze Review", type="primary"):
 
     if not review.strip():
+
         st.warning("Please enter a review first.")
 
     else:
+
         try:
-            # Convert review into TF-IDF features
             review_vector = vectorizer.transform([review])
 
-            # ANN prediction
             prediction = model.predict(
                 review_vector,
                 verbose=0
             )
 
-            # Get CG score
-            cg_score = float(np.asarray(prediction).reshape(-1)[0])
+            cg_score = float(
+                np.asarray(prediction).reshape(-1)[0]
+            )
 
-            # Convert scores into percentages
+            or_score = 1 - cg_score
+
             cg_percentage = cg_score * 100
-            or_percentage = (1 - cg_score) * 100
+            or_percentage = or_score * 100
 
-            # Classification threshold
             threshold = 0.55
 
             st.write("---")
@@ -166,35 +166,12 @@ if st.button("Analyze Review", type="primary"):
 
                 st.error("🤖 Computer-Generated Review (CG)")
 
-                st.markdown(
-                    f"""
-                    <div class="result-box"
-                    style="background-color:#ffe5e5;">
-                    <h3 style="color:#b30000;">
-                    Computer-Generated (CG)
-                    </h3>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
             else:
 
                 st.success("👤 Original Review (OR)")
 
-                st.markdown(
-                    f"""
-                    <div class="result-box"
-                    style="background-color:#e5f5e9;">
-                    <h3 style="color:#08752c;">
-                    Original (OR)
-                    </h3>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            # Display scores
 
-            # Display model scores
             st.subheader("Model Scores")
 
             score_col1, score_col2 = st.columns(2)
@@ -212,12 +189,13 @@ if st.button("Analyze Review", type="primary"):
                 )
 
             st.caption(
-                "These percentages are model scores, not verified "
-                "probabilities or proof of a review's true origin."
+                "These are model scores, not verified probabilities "
+                "or proof of the review's true origin."
             )
 
         except Exception as e:
-            st.error("An error occurred during prediction.")
+
+            st.error("Prediction failed.")
             st.exception(e)
 
 
@@ -230,7 +208,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.metric(
-        "Test Accuracy",
+        "Accuracy",
         f"{float(metrics.get('accuracy', 0)) * 100:.2f}%"
     )
 
