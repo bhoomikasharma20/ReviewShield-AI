@@ -340,50 +340,52 @@ review = st.text_area(
 # PREDICTION
 # ==================================================
 
-if st.button(
-    "🔍 Analyze Review",
-    type="primary",
-    use_container_width=True
-):
+
+# ---------------- PREDICTION ----------------
+
+if st.button("🔍 Analyze Review", type="primary", use_container_width=True):
 
     if not review.strip():
-
         st.warning("Please enter a review first.")
 
     else:
-
         try:
+            review_vector = vectorizer.transform([review]).toarray()
 
-            with st.spinner("Analyzing your review..."):
+            prediction = model.predict(
+                review_vector,
+                verbose=0
+            )
 
-                review_vector = vectorizer.transform(
-                    [review]
-                ).toarray()
+            # Reverse the output interpretation
+            raw_score = float(
+                np.asarray(prediction).reshape(-1)[0]
+            )
 
-                prediction = model.predict(
-                    review_vector,
-                    verbose=0
-                )
+            or_score = raw_score
+            cg_score = 1 - raw_score
 
-                cg_score = float(
-                    np.asarray(prediction).reshape(-1)[0]
-                )
+            or_percentage = or_score * 100
+            cg_percentage = cg_score * 100
 
-                or_score = 1 - cg_score
-
-                cg_percentage = cg_score * 100
-                or_percentage = or_score * 100
-
-                threshold = 0.55
+            threshold = 0.55
 
             st.write("---")
             st.subheader("📊 Analysis Result")
 
-            # Sound
             play_beep()
 
-            # Classification
-            if cg_score >= threshold:
+            if or_score >= threshold:
+
+                st.markdown("""
+                <div class="result-box or-box">
+                    <h2>👤 Original Review</h2>
+                    <p><b>Classification: OR</b></p>
+                    <p>The model classified this review as original.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            else:
 
                 st.markdown("""
                 <div class="result-box cg-box">
@@ -393,15 +395,37 @@ if st.button(
                 </div>
                 """, unsafe_allow_html=True)
 
-            else:
+            st.subheader("📈 Model Scores")
 
-                st.markdown("""
-                <div class="result-box or-box">
-                    <h2>👤 Original Review</h2>
-                    <p><b>Classification: OR</b></p>
-                    <p>The model classified this review as original.</p>
-                </div>
-                """, unsafe_allow_html=True)
+            score_col1, score_col2 = st.columns(2)
+
+            with score_col1:
+                st.metric(
+                    "👤 Original (OR)",
+                    f"{or_percentage:.2f}%"
+                )
+
+            with score_col2:
+                st.metric(
+                    "🤖 Computer-Generated (CG)",
+                    f"{cg_percentage:.2f}%"
+                )
+
+            st.write("Original (OR) Score")
+            st.progress(float(or_score))
+
+            st.write("Computer-Generated (CG) Score")
+            st.progress(float(cg_score))
+
+            st.caption(
+                "These are model scores, not verified probabilities "
+                "or proof of the review's true origin."
+            )
+
+        except Exception as e:
+            st.error("Prediction failed.")
+            st.exception(e)
+
 
             # ==================================================
             # MODEL SCORES
