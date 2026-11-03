@@ -22,8 +22,6 @@ st.set_page_config(
 )
 
 
-
-
 # ---------------- CUSTOM DESIGN ----------------
 
 st.markdown("""
@@ -139,7 +137,6 @@ if st.button("Analyze Review", type="primary"):
     else:
 
         try:
-            # Yahan .toarray() add kar diya gaya hai
             review_vector = vectorizer.transform([review]).toarray()
 
             prediction = model.predict(
