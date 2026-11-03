@@ -300,7 +300,7 @@ st.subheader("✨ Try Example Reviews")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("👤 Original Review Example"):
+    if st.button("👤 generated Review Example"):
         st.session_state["review_input"] = (
             "I ordered these headphones about three weeks ago. "
             "The sound is pretty good and the battery lasts "
@@ -312,7 +312,7 @@ with col1:
         )
 
 with col2:
-    if st.button("🤖 Generated Review Example"):
+    if st.button("🤖 Original Review Example"):
         st.session_state["review_input"] = (
             "This exceptional product delivers outstanding "
             "performance and remarkable quality. Its innovative "
