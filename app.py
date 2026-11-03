@@ -1,312 +1,270 @@
 
 
+import json
+import joblib
 import streamlit as st
 import tensorflow as tf
-import joblib
-import json
-import re
-import os
+import numpy as np
 
-# -------------------------------
-# PAGE CONFIGURATION
-# -------------------------------
+
+# ---------------- PAGE CONFIGURATION ----------------
 
 st.set_page_config(
     page_title="ReviewShield AI",
     page_icon="🛡️",
-    layout="wide"
+    layout="centered"
 )
 
-# -------------------------------
-# FILE PATHS
-# -------------------------------
 
-MODEL_PATH = "ann_model.keras"
-VECTORIZER_PATH = "tfidf_vectorizer.pkl"
-METRICS_PATH = "metrics.json"
+# ---------------- CUSTOM CSS ----------------
+
+st.markdown("""
+<style>
+.main {
+    background-color: #f7f9fc;
+}
+.title {
+    text-align: center;
+    color: #173b67;
+    font-size: 38px;
+    font-weight: bold;
+}
+.subtitle {
+    text-align: center;
+    color: #555555;
+    font-size: 16px;
+}
+.result-box {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 15px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
-# -------------------------------
-# LOAD MODEL FILES
-# -------------------------------
+# ---------------- LOAD MODEL FILES ----------------
 
 @st.cache_resource
 def load_model_files():
 
-    # Check files exist
-    for path in [
-        MODEL_PATH,
-        VECTORIZER_PATH,
-        METRICS_PATH
-    ]:
-        if not os.path.exists(path):
-            raise FileNotFoundError(
-                f"File not found: {path}"
-            )
-
-    # Load ANN model
     model = tf.keras.models.load_model(
-        MODEL_PATH,
+        "ann_model.keras",
         compile=False
     )
 
-    # Load TF-IDF vectorizer
     vectorizer = joblib.load(
-        VECTORIZER_PATH
+        "tfidf_vectorizer.pkl"
     )
 
-    # Load metrics
-    with open(METRICS_PATH, "r") as file:
+    with open("metrics.json", "r") as file:
         metrics = json.load(file)
 
     return model, vectorizer, metrics
 
 
-# -------------------------------
-# TEXT CLEANING
-# -------------------------------
+# ---------------- HEADER ----------------
 
-def clean_text(text):
-
-    text = text.lower()
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"\s+", " ", text)
-
-    return text.strip()
-
-
-# -------------------------------
-# WEBSITE HEADER
-# -------------------------------
-
-st.title("🛡️ ReviewShield AI")
-
-st.subheader(
-    "AI-Powered Product Review Analyzer"
+st.markdown(
+    '<div class="title">🛡️ ReviewShield AI</div>',
+    unsafe_allow_html=True
 )
 
-st.write(
-    "Enter a product review to check whether its text "
-    "resembles original or computer-generated reviews."
+st.markdown(
+    '<div class="subtitle">AI-Based Product Review Classification System</div>',
+    unsafe_allow_html=True
 )
 
-st.divider()
+st.write("")
+
+st.info(
+    "Enter a product review below to check whether it is "
+    "Original (OR) or Computer-Generated (CG)."
+)
 
 
-# -------------------------------
-# LOAD MODEL
-# -------------------------------
+# ---------------- LOAD FILES SAFELY ----------------
 
 try:
-
     model, vectorizer, metrics = load_model_files()
 
 except Exception as e:
-
-    st.error("Unable to load AI model files.")
-
+    st.error("Unable to load the model files.")
+    st.write("Please check that all model files are present in the repository root.")
     st.exception(e)
-
     st.stop()
 
 
-# -------------------------------
-# EXAMPLE REVIEWS
-# -------------------------------
+# ---------------- EXAMPLE REVIEWS ----------------
 
-examples = {
-
-    "ChatGPT Review (CG)": (
-        "This product is absolutely amazing! It offers excellent "
-        "quality, outstanding performance, and great value for money. "
-        "I highly recommend it to everyone."
-    ),
-
-    "Human Review (OR)": (
-        "I bought this product last week. It works fine so far, "
-        "although the packaging was slightly damaged. Overall, "
-        "I am happy with my purchase."
-    )
-}
-
-
-# -------------------------------
-# SESSION STATE
-# -------------------------------
-
-if "review_text" not in st.session_state:
-
-    st.session_state.review_text = ""
-
-
-# -------------------------------
-# EXAMPLE BUTTONS
-# -------------------------------
-
-st.subheader("📝 Try Example Reviews")
+st.subheader("Try Example Reviews")
 
 col1, col2 = st.columns(2)
 
 with col1:
-
-    if st.button(
-        "🤖 ChatGPT Review (CG)",
-        use_container_width=True
-    ):
-
-        st.session_state.review_text = examples[
-            "ChatGPT Review (CG)"
-        ]
+    if st.button("Original Review Example"):
+        st.session_state["review_input"] = (
+            "I bought this product last week and have been "
+            "using it every day. The quality is good and "
+            "it works as expected."
+        )
 
 with col2:
-
-    if st.button(
-        "👤 Human Review (OR)",
-        use_container_width=True
-    ):
-
-        st.session_state.review_text = examples[
-            "Human Review (OR)"
-        ]
+    if st.button("Generated Review Example"):
+        st.session_state["review_input"] = (
+            "This amazing product provides excellent quality "
+            "and outstanding performance. It is highly "
+            "recommended for everyone."
+        )
 
 
-# -------------------------------
-# REVIEW INPUT
-# -------------------------------
+# ---------------- USER INPUT ----------------
+
+st.subheader("Enter Your Product Review")
 
 review = st.text_area(
-    "Enter your product review",
-    placeholder="Type or paste your review here...",
-    height=150,
-    key="review_text"
+    "Write or paste your review here:",
+    key="review_input",
+    height=160,
+    placeholder="Type your product review..."
 )
 
 
-# -------------------------------
-# ANALYZE REVIEW
-# -------------------------------
+# ---------------- PREDICTION ----------------
 
-if st.button(
-    "🔍 Analyze Review",
-    type="primary",
-    use_container_width=True
-):
+if st.button("Analyze Review", type="primary"):
 
-    if len(review.strip()) < 10:
-
-        st.warning(
-            "Please enter a review of at least 10 characters."
-        )
+    if not review.strip():
+        st.warning("Please enter a review first.")
 
     else:
-
         try:
+            # Convert review into TF-IDF features
+            review_vector = vectorizer.transform([review])
 
-            cleaned = clean_text(review)
-
-            features = vectorizer.transform(
-                [cleaned]
-            ).toarray()
-
-            score = float(
-                model.predict(
-                    features,
-                    verbose=0
-                )[0][0]
+            # ANN prediction
+            prediction = model.predict(
+                review_vector,
+                verbose=0
             )
 
-            # Calculate scores
-            cg_score = score * 100
-            or_score = (1 - score) * 100
+            # Get CG score
+            cg_score = float(np.asarray(prediction).reshape(-1)[0])
 
-            st.divider()
+            # Convert scores into percentages
+            cg_percentage = cg_score * 100
+            or_percentage = (1 - cg_score) * 100
 
-            st.subheader("🔍 Analysis Result")
+            # Classification threshold
+            threshold = 0.55
 
-            # Prediction
-            if score >= 0.55:
+            st.write("---")
+            st.subheader("Analysis Result")
 
-                st.warning(
-                    "🤖 Potentially Computer-Generated (CG)"
+            if cg_score >= threshold:
+
+                st.error("🤖 Computer-Generated Review (CG)")
+
+                st.markdown(
+                    f"""
+                    <div class="result-box"
+                    style="background-color:#ffe5e5;">
+                    <h3 style="color:#b30000;">
+                    Computer-Generated (CG)
+                    </h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
             else:
 
-                st.success(
-                    "👤 More Similar to Original (OR)"
+                st.success("👤 Original Review (OR)")
+
+                st.markdown(
+                    f"""
+                    <div class="result-box"
+                    style="background-color:#e5f5e9;">
+                    <h3 style="color:#08752c;">
+                    Original (OR)
+                    </h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
-            # Display both scores
-            col1, col2 = st.columns(2)
+            # Display model scores
+            st.subheader("Model Scores")
 
-            with col1:
+            score_col1, score_col2 = st.columns(2)
 
+            with score_col1:
                 st.metric(
-                    "🤖 CG Score",
-                    f"{cg_score:.2f}%"
+                    "Original (OR)",
+                    f"{or_percentage:.2f}%"
                 )
 
-            with col2:
-
+            with score_col2:
                 st.metric(
-                    "👤 OR Score",
-                    f"{or_score:.2f}%"
+                    "Computer-Generated (CG)",
+                    f"{cg_percentage:.2f}%"
                 )
 
             st.caption(
-                "These are model scores, not verified probabilities. "
-                "A prediction is not proof that a review is fake or genuine."
+                "These percentages are model scores, not verified "
+                "probabilities or proof of a review's true origin."
             )
 
         except Exception as e:
-
-            st.error(
-                "Something went wrong during review analysis."
-            )
-
+            st.error("An error occurred during prediction.")
             st.exception(e)
 
 
-# -------------------------------
-# MODEL PERFORMANCE
-# -------------------------------
+# ---------------- MODEL PERFORMANCE ----------------
 
-st.divider()
+st.write("---")
+st.subheader("Model Performance")
 
-st.header("📊 Model Performance")
+col1, col2 = st.columns(2)
 
-c1, c2, c3, c4 = st.columns(4)
+with col1:
+    st.metric(
+        "Test Accuracy",
+        f"{float(metrics.get('accuracy', 0)) * 100:.2f}%"
+    )
 
-c1.metric(
-    "Accuracy",
-    f"{metrics['accuracy']:.2%}"
+with col2:
+    st.metric(
+        "F1 Score",
+        f"{float(metrics.get('f1_score', 0)) * 100:.2f}%"
+    )
+
+col3, col4 = st.columns(2)
+
+with col3:
+    st.metric(
+        "Precision",
+        f"{float(metrics.get('precision', 0)) * 100:.2f}%"
+    )
+
+with col4:
+    st.metric(
+        "Recall",
+        f"{float(metrics.get('recall', 0)) * 100:.2f}%"
+    )
+
+
+# ---------------- FOOTER ----------------
+
+st.write("---")
+
+st.markdown(
+    "<center>Developed as an AI-Based Product Review "
+    "Classification Project</center>",
+    unsafe_allow_html=True
 )
 
-c2.metric(
-    "Precision",
-    f"{metrics['precision']:.2%}"
-)
-
-c3.metric(
-    "Recall",
-    f"{metrics['recall']:.2%}"
-)
-
-c4.metric(
-    "F1-score",
-    f"{metrics['f1_score']:.2%}"
-)
-
-
-# -------------------------------
-# FOOTER
-# -------------------------------
-
-st.divider()
-
-st.caption(
-    "ReviewShield AI | ANN-Based Product Review Classification System"
-)
 
 
 
